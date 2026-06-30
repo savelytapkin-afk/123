@@ -48,6 +48,34 @@ import requests
 from typing import Optional
 
 
+def _derive_service_from_url(url: str) -> str:
+    """Определяет service-код для Goo.Network из домена URL объявления."""
+    try:
+        from urllib.parse import urlparse
+        host = urlparse(url).netloc.lower().replace("www.", "")
+        if host.startswith("vinted."):
+            return f"vinted_{host.split('.')[1]}"
+        if "wallapop" in host:
+            parts = host.split(".")
+            if parts[0] in ("es", "it", "de", "fr", "pt"):
+                return f"wallapop_{parts[0]}"
+            return "wallapop_es"
+        if "subito" in host:
+            return "subito_it"
+        if "marktplaats" in host:
+            return "marktplaats_nl"
+        if "2dehands" in host:
+            return "2dehands_be"
+        if "kleinanzeigen" in host or ("ebay" in host and ".de" in host):
+            return "ebay_de"
+        if "olx" in host:
+            cc = host.rsplit(".", 1)[-1]
+            return f"olx_{cc}"
+    except Exception:
+        pass
+    return ""
+
+
 # Маппинг: (платформа, код_страны) → serviceCode
 SERVICE_CODE_MAP = {
     ("vinted",   "IT"): "vinted_it",
@@ -423,8 +451,12 @@ class GooNetworkLinkGenerator:
                 "Заполни их в настройках приложения."
             )
 
+        ad_url_for_service = product_data.get("ad_url", "").strip()
+
+        # Приоритет: service из URL домена → затем из service_code → platform
         service = (
-            product_data.get("service_code", "")
+            _derive_service_from_url(ad_url_for_service)
+            or product_data.get("service_code", "")
             or product_data.get("platform", "")
         )
         if not service:

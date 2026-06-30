@@ -81,6 +81,46 @@ PLATFORMS = {
 
 COUNTRIES = ["DE", "US", "GB", "FR", "IT", "ES", "NL", "BE", "AT", "CH", "SE", "NO", "DK", "FI", "PL", "CZ", "AU", "CA", "SG", "MY"]
 
+
+def _derive_service_from_url(url: str) -> str:
+    """
+    Определяет service-код для Goo.Network API из URL объявления.
+    Примеры: vinted.nl → vinted_nl, es.wallapop.com → wallapop_es
+    Fallback: возвращает пустую строку.
+    """
+    try:
+        from urllib.parse import urlparse
+        host = urlparse(url).netloc.lower().replace("www.", "")
+        # vinted.de, vinted.nl, vinted.it, ...
+        if host.startswith("vinted."):
+            cc = host.split(".")[1]
+            return f"vinted_{cc}"
+        # es.wallapop.com, ...
+        if "wallapop" in host:
+            parts = host.split(".")
+            if parts[0] in ("es", "it", "de", "fr", "pt"):
+                return f"wallapop_{parts[0]}"
+            return "wallapop_es"
+        # subito.it
+        if "subito" in host:
+            return "subito_it"
+        # marktplaats.nl
+        if "marktplaats" in host:
+            return "marktplaats_nl"
+        # 2dehands.be
+        if "2dehands" in host:
+            return "2dehands_be"
+        # kleinanzeigen.de / ebay.de
+        if "kleinanzeigen" in host or ("ebay" in host and ".de" in host):
+            return "ebay_de"
+        # olx.pl / olx.ro / ...
+        if "olx" in host:
+            cc = host.rsplit(".", 1)[-1]
+            return f"olx_{cc}"
+    except Exception:
+        pass
+    return ""
+
 def debug_log(message: str, driver=None, email: str = ""):
     """Логирование в DEBUG режиме"""
     if not DEBUG:
@@ -2828,14 +2868,10 @@ class App(ctk.CTk):
             messagebox.showerror("Ошибка", f"Не удалось сохранить: {e}")
 
     def _test_goo_network(self):
-        """
-        Тестирует оба варианта авторизации Goo.Network:
-        Вариант A: Authorization = Apikey <team_key>  (no-parse docs)
-        Вариант B: Authorization = Apikey <user_key>  (parse docs)
-        Показывает оба результата чтобы найти рабочий.
-        """
+        """Тестовый запрос к Goo.Network с реальной ссылкой на объявление."""
         import threading
         import requests as _requests
+        from tkinter import simpledialog
 
         api_key    = self.goo_apikey_entry.get().strip()
         team_key   = self.goo_teamkey_entry.get().strip()
@@ -2845,44 +2881,48 @@ class App(ctk.CTk):
             messagebox.showwarning("Goo.Network", "Заполни все три поля перед тестом.")
             return
 
-        def _do_test():
-            url = "https://api.goo.network/api/generate/single/parse"
-            payload = {
-                "service":              "vinted_nl",
-                "url":                  "https://www.vinted.nl/items/1234567890-test",
-                "isNeedBalanceChecker": False,
-                "profileID":            profile_id,
-            }
-            lines = []
-            for label, auth_val in [
-                ("A: Authorization=user_key + Host", api_key),
-                ("B: Authorization=team_key + Host", team_key),
-                ("C: Authorization=user_key, no Host", api_key),
-            ]:
-                try:
-                    hdrs = {
-                        "Authorization": f"Apikey {auth_val}",
-                        "X-Team-Key":    team_key,
-                        "Content-Type":  "application/json",
-                        "Accept":        "application/json",
-                    }
-                    if "Host" in label:
-                        hdrs["Host"] = "api.goo.network"
-                    r = _requests.post(url, json=payload, headers=hdrs, timeout=20)
-                    lines.append(
-                        f"[{label}]\n"
-                        f"  HTTP {r.status_code} | {r.text[:200]}"
-                    )
-                except Exception as e:
-                    lines.append(f"[{label}]\n  Ошибка: {e}")
+        ad_url = simpledialog.askstring(
+            "Goo.Network Тест",
+            "Вставь ссылку на реальное объявление для теста\n"
+            "(например: https://www.vinted.nl/items/12345-название):",
+            parent=self
+        )
+        if not ad_url or not ad_url.strip().startswith("http"):
+            messagebox.showwarning("Goo.Network", "Нужна корректная ссылка на объявление.")
+            return
+        ad_url = ad_url.strip()
 
-            result = (
-                f"user_key: {'*'*8}{api_key[-6:]}\n"
-                f"team_key: {'*'*8}{team_key[-6:]}\n"
-                f"profileID: {profile_id}\n\n"
-                + "\n\n".join(lines)
-            )
-            self.after(0, lambda: messagebox.showinfo("Goo.Network Тест", result))
+        # Определяем service из домена ссылки
+        service = _derive_service_from_url(ad_url)
+
+        def _do_test():
+            try:
+                hdrs = {
+                    "Authorization": f"Apikey {api_key}",
+                    "Host":          "api.goo.network",
+                    "X-Team-Key":    team_key,
+                    "Content-Type":  "application/json",
+                    "Accept":        "application/json",
+                }
+                payload = {
+                    "service":              service,
+                    "url":                  ad_url,
+                    "isNeedBalanceChecker": False,
+                    "profileID":            profile_id,
+                }
+                r = _requests.post(
+                    "https://api.goo.network/api/generate/single/parse",
+                    json=payload, headers=hdrs, timeout=30
+                )
+                result = (
+                    f"HTTP {r.status_code}\n\n"
+                    f"Сервис: {service}\n"
+                    f"URL объявления: {ad_url[:80]}\n\n"
+                    f"Ответ:\n{r.text[:600]}"
+                )
+                self.after(0, lambda: messagebox.showinfo("Goo.Network Тест", result))
+            except Exception as e:
+                self.after(0, lambda: messagebox.showerror("Goo.Network Тест", str(e)))
 
         threading.Thread(target=_do_test, daemon=True).start()
 
