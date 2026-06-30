@@ -377,19 +377,13 @@ class MonkeyTeamLinkGenerator:
 #  Goo.Network API — третий генератор ссылок
 # ══════════════════════════════════════════════════════════════════════════════
 #
-#  Два режима (выбор автоматический):
+#  Режим без парсера (по данным товара — предпочтительный):
+#     POST https://api-old.goo.network/api/generate/single/no-parse
+#     Body: service, name, price, image, profileID, isNeedBalanceChecker
 #
-#  1. С парсером (ad_url присутствует):
-#     POST https://api.goo.network/api/generate/single/parse
-#     Body: service, url, isNeedBalanceChecker, profileID
-#
-#  2. Без парсера (ad_url отсутствует):
-#     POST https://api.goo.network/api/generate/single/no-parse
-#     Body: service, name, isNeedBalanceChecker, profileID, image, price
-#
-#  Headers (оба режима):
+#  Headers:
 #     Authorization: Apikey <user_api_key>
-#     Host: api.goo.network
+#     Host: api-old.goo.network
 #     X-Team-Key: <team_key>
 #
 #  Ответ: {"status": true, "message": "<url>"}
@@ -420,10 +414,7 @@ class GooNetworkLinkGenerator:
         return bool(self.user_api_key and self.team_key and self.profile_id)
 
     def _build_headers(self) -> dict:
-        # Curl-пример из docs.goo.network:
-        #   Authorization: Apikey <User API key>
-        #   Host: api.goo.network
-        #   X-Team-Key: <Team API key>
+        # Реальный рабочий домен: api-old.goo.network
         return {
             "Authorization": f"Apikey {self.user_api_key}",
             "Host":          "api-old.goo.network",
