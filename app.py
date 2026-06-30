@@ -3366,11 +3366,15 @@ class App(ctk.CTk):
         if category:
             filters["category"] = category
 
-        # Цена (собираем из двух полей в формат "X..Y")
+        # Цена — форматы: "10..100" (диапазон), "10.." (от), "100" (до)
         price_from = self.price_from_entry.get().strip()
-        price_to = self.price_to_entry.get().strip()
-        if price_from or price_to:
+        price_to   = self.price_to_entry.get().strip()
+        if price_from and price_to:
             filters["price"] = f"{price_from}..{price_to}"
+        elif price_from:
+            filters["price"] = f"{price_from}.."
+        elif price_to:
+            filters["price"] = price_to
 
         # Отзывы
         reviews = self.reviews_entry.get().strip()
@@ -3466,18 +3470,22 @@ class App(ctk.CTk):
             if platform not in selected_platforms:
                 selected_platforms.append(platform)
 
-        # Определяем страну: авто из сервис-кода или из dropdown
+        # Определяем страну: явный выбор или авто из первого сервис-кода
         country_override = self.country_var.get()
         if country_override and country_override != "(авто)":
             country = country_override
         else:
-            # Берём из первого сервис-кода с суффиксом
             country = ""
             for sc in service_codes:
                 parts = sc.split("_", 1)
                 if len(parts) > 1:
                     country = parts[1].upper()
                     break
+
+        # Добавляем страну в фильтры для мультистраночных площадок
+        # (если страна не была явно задана пользователем и не попала в filters)
+        if country and "country" not in filters:
+            filters["country"] = country
 
         platform = selected_platforms[0]
         platform_names = ", ".join(service_codes)
