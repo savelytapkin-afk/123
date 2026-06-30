@@ -2846,7 +2846,7 @@ class App(ctk.CTk):
             return
 
         def _do_test():
-            url = "https://api.goo.network/api/generate/single/no-parse"
+            url = "https://api.goo.network/api/generate/single/parse"
             payload = {
                 "service":              "vinted_nl",
                 "name":                 "Test Item",

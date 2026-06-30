@@ -367,8 +367,7 @@ class MonkeyTeamLinkGenerator:
 #  Ответ: {"status": true, "message": "<url>"}
 # ══════════════════════════════════════════════════════════════════════════════
 
-GOO_NETWORK_PARSE_URL    = "https://api.goo.network/api/generate/single/parse"
-GOO_NETWORK_NO_PARSE_URL = "https://api.goo.network/api/generate/single/no-parse"
+GOO_NETWORK_SINGLE_URL = "https://api.goo.network/api/generate/single/parse"
 
 
 class GooNetworkLinkGenerator:
@@ -442,7 +441,6 @@ class GooNetworkLinkGenerator:
         except (ValueError, TypeError):
             price_num = 0
 
-        endpoint = GOO_NETWORK_NO_PARSE_URL
         payload = {
             "service":              service,
             "name":                 product_data.get("product_name", "") or "Item",
@@ -453,7 +451,7 @@ class GooNetworkLinkGenerator:
         }
         headers = self._build_headers()
 
-        response = requests.post(endpoint, json=payload, headers=headers, timeout=20)
+        response = requests.post(GOO_NETWORK_SINGLE_URL, json=payload, headers=headers, timeout=20)
 
         if response.status_code != 200:
             try:
