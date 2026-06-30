@@ -394,7 +394,6 @@ class GooNetworkLinkGenerator:
     def _build_headers(self) -> dict:
         return {
             "Authorization": f"Apikey {self.user_api_key}",
-            "Host":          "api.goo.network",
             "X-Team-Key":    self.team_key,
             "Content-Type":  "application/json",
             "Accept":        "application/json",
@@ -453,9 +452,10 @@ class GooNetworkLinkGenerator:
 
         if response.status_code != 200:
             try:
-                msg = response.json().get("message", response.text[:200])
+                body = response.json()
+                msg = body.get("message", str(body)[:300])
             except Exception:
-                msg = response.text[:200]
+                msg = response.text[:300]
             raise RuntimeError(
                 f"Goo.Network HTTP {response.status_code}: {msg}"
             )
