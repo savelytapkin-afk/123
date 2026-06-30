@@ -2904,21 +2904,40 @@ class App(ctk.CTk):
                     "Content-Type":  "application/json",
                     "Accept":        "application/json",
                 }
-                payload = {
+                lines = []
+
+                # Вариант 1: no-parse (по данным — предпочтительный)
+                payload_np = {
+                    "service":              service,
+                    "name":                 "Test Item",
+                    "isNeedBalanceChecker": False,
+                    "profileID":            profile_id,
+                    "image":                "",
+                    "price":                10.0,
+                }
+                r1 = _requests.post(
+                    "https://api-old.goo.network/api/generate/single/no-parse",
+                    json=payload_np, headers=hdrs, timeout=30
+                )
+                lines.append(f"[no-parse /по данным]\nHTTP {r1.status_code} | {r1.text[:300]}")
+
+                # Вариант 2: parse (по URL объявления)
+                payload_p = {
                     "service":              service,
                     "url":                  ad_url,
                     "isNeedBalanceChecker": False,
                     "profileID":            profile_id,
                 }
-                r = _requests.post(
+                r2 = _requests.post(
                     "https://api-old.goo.network/api/generate/single/parse",
-                    json=payload, headers=hdrs, timeout=30
+                    json=payload_p, headers=hdrs, timeout=30
                 )
+                lines.append(f"[parse /по URL]\nHTTP {r2.status_code} | {r2.text[:300]}")
+
                 result = (
-                    f"HTTP {r.status_code}\n\n"
                     f"Сервис: {service}\n"
-                    f"URL объявления: {ad_url[:80]}\n\n"
-                    f"Ответ:\n{r.text[:600]}"
+                    f"URL: {ad_url[:60]}\n\n"
+                    + "\n\n".join(lines)
                 )
                 self.after(0, lambda: messagebox.showinfo("Goo.Network Тест", result))
             except Exception as e:

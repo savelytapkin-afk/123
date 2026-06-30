@@ -395,7 +395,8 @@ class MonkeyTeamLinkGenerator:
 #  Ответ: {"status": true, "message": "<url>"}
 # ══════════════════════════════════════════════════════════════════════════════
 
-GOO_NETWORK_SINGLE_URL = "https://api-old.goo.network/api/generate/single/parse"
+GOO_NETWORK_PARSE_URL    = "https://api-old.goo.network/api/generate/single/parse"
+GOO_NETWORK_NO_PARSE_URL = "https://api-old.goo.network/api/generate/single/no-parse"
 
 
 class GooNetworkLinkGenerator:
@@ -462,22 +463,27 @@ class GooNetworkLinkGenerator:
         if not service:
             raise RuntimeError("Goo.Network: не определён сервис-код товара.")
 
-        ad_url = product_data.get("ad_url", "").strip()
-        if not ad_url:
-            raise RuntimeError(
-                "Goo.Network: нет ссылки на объявление (ad_url). "
-                "Endpoint /parse требует поле url."
-            )
+        # Режим без парсера — генерация по данным товара.
+        # Надёжнее чем parse-режим: не зависит от доступности оригинальной ссылки.
+        price_raw = product_data.get("price", "0")
+        try:
+            price_num = float("".join(
+                c for c in str(price_raw) if c.isdigit() or c == "."
+            ) or "0")
+        except (ValueError, TypeError):
+            price_num = 0
 
         payload = {
             "service":              service,
-            "url":                  ad_url,
+            "name":                 product_data.get("product_name", "") or "Item",
             "isNeedBalanceChecker": False,
             "profileID":            self.profile_id,
+            "image":                product_data.get("photo", ""),
+            "price":                price_num,
         }
         headers = self._build_headers()
 
-        response = requests.post(GOO_NETWORK_SINGLE_URL, json=payload, headers=headers, timeout=20)
+        response = requests.post(GOO_NETWORK_NO_PARSE_URL, json=payload, headers=headers, timeout=20)
 
         if response.status_code != 200:
             try:
