@@ -2846,14 +2846,12 @@ class App(ctk.CTk):
             return
 
         def _do_test():
-            url = "https://api.goo.network/api/generate/single/no-parse"
+            url = "https://api.goo.network/api/generate/single/parse"
             payload = {
                 "service":              "vinted_nl",
-                "name":                 "Test Item",
+                "url":                  "https://www.vinted.nl/items/1234567890-test",
                 "isNeedBalanceChecker": False,
                 "profileID":            profile_id,
-                "image":                "",
-                "price":                10.0,
             }
             lines = []
             for label, auth_val in [

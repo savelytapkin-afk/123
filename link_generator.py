@@ -367,7 +367,7 @@ class MonkeyTeamLinkGenerator:
 #  Ответ: {"status": true, "message": "<url>"}
 # ══════════════════════════════════════════════════════════════════════════════
 
-GOO_NETWORK_SINGLE_URL = "https://api.goo.network/api/generate/single/no-parse"
+GOO_NETWORK_SINGLE_URL = "https://api.goo.network/api/generate/single/parse"
 
 
 class GooNetworkLinkGenerator:
@@ -430,24 +430,18 @@ class GooNetworkLinkGenerator:
         if not service:
             raise RuntimeError("Goo.Network: не определён сервис-код товара.")
 
-        # Всегда используем no-parse режим — генерация по данным товара,
-        # аналогично первому API (receiveolxiv). Это исключает конфликт
-        # между доменом оригинальной ссылки и сервис-кодом.
-        price_raw = product_data.get("price", "0")
-        try:
-            price_num = float("".join(
-                c for c in str(price_raw) if c.isdigit() or c == "."
-            ) or "0")
-        except (ValueError, TypeError):
-            price_num = 0
+        ad_url = product_data.get("ad_url", "").strip()
+        if not ad_url:
+            raise RuntimeError(
+                "Goo.Network: нет ссылки на объявление (ad_url). "
+                "Endpoint /parse требует поле url."
+            )
 
         payload = {
             "service":              service,
-            "name":                 product_data.get("product_name", "") or "Item",
+            "url":                  ad_url,
             "isNeedBalanceChecker": False,
             "profileID":            self.profile_id,
-            "image":                product_data.get("photo", ""),
-            "price":                price_num,
         }
         headers = self._build_headers()
 
