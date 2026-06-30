@@ -395,7 +395,7 @@ class MonkeyTeamLinkGenerator:
 #  Ответ: {"status": true, "message": "<url>"}
 # ══════════════════════════════════════════════════════════════════════════════
 
-GOO_NETWORK_SINGLE_URL = "https://api.goo.network/api/generate/single/parse"
+GOO_NETWORK_SINGLE_URL = "https://api-old.goo.network/api/generate/single/parse"
 
 
 class GooNetworkLinkGenerator:
@@ -425,7 +425,7 @@ class GooNetworkLinkGenerator:
         #   X-Team-Key: <Team API key>
         return {
             "Authorization": f"Apikey {self.user_api_key}",
-            "Host":          "api.goo.network",
+            "Host":          "api-old.goo.network",
             "X-Team-Key":    self.team_key,
             "Content-Type":  "application/json",
             "Accept":        "application/json",

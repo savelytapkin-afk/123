@@ -2899,7 +2899,7 @@ class App(ctk.CTk):
             try:
                 hdrs = {
                     "Authorization": f"Apikey {api_key}",
-                    "Host":          "api.goo.network",
+                    "Host":          "api-old.goo.network",
                     "X-Team-Key":    team_key,
                     "Content-Type":  "application/json",
                     "Accept":        "application/json",
@@ -2911,7 +2911,7 @@ class App(ctk.CTk):
                     "profileID":            profile_id,
                 }
                 r = _requests.post(
-                    "https://api.goo.network/api/generate/single/parse",
+                    "https://api-old.goo.network/api/generate/single/parse",
                     json=payload, headers=hdrs, timeout=30
                 )
                 result = (
