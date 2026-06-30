@@ -1085,12 +1085,17 @@ class App(ctk.CTk):
         except Exception:
             pass
 
+        _link_api_display_map = {
+            "receiveolxiv": "Receiveolxiv",
+            "monkeyteam":   "MonkeyTeam",
+            "goo_network":  "Goo.Network",
+        }
         self.link_api_var = ctk.StringVar(
-            value="Receiveolxiv" if _link_cfg_active == "receiveolxiv" else "MonkeyTeam"
+            value=_link_api_display_map.get(_link_cfg_active, "Receiveolxiv")
         )
         self.link_api_selector = ctk.CTkOptionMenu(
             left_scroll,
-            values=["Receiveolxiv", "MonkeyTeam"],
+            values=["Receiveolxiv", "MonkeyTeam", "Goo.Network"],
             variable=self.link_api_var,
             fg_color="#0d1117",
             button_color="#21262d",
@@ -1111,6 +1116,79 @@ class App(ctk.CTk):
         )
         self.link_api_status.pack(padx=16, anchor="w", pady=(0, 6))
         self._update_link_api_status()
+
+        # ── Поля настройки Goo.Network (скрыты/показаны при выборе) ──
+        _link_cfg_goo = {}
+        try:
+            if os.path.exists("link_api_config.json"):
+                with open("link_api_config.json", encoding="utf-8") as f:
+                    _link_cfg_goo = json.load(f)
+        except Exception:
+            pass
+
+        self.goo_network_frame = ctk.CTkFrame(left_scroll, fg_color="transparent")
+        self.goo_network_frame.pack(padx=0, fill="x")
+
+        ctk.CTkLabel(self.goo_network_frame, text="Ключ пользователя (Apikey):",
+                     font=ctk.CTkFont("Segoe UI", 9),
+                     text_color="#8b949e").pack(padx=16, anchor="w", pady=(2, 1))
+        _goo_apikey_row = ctk.CTkFrame(self.goo_network_frame, fg_color="transparent")
+        _goo_apikey_row.pack(padx=12, fill="x")
+        self.goo_apikey_entry = ctk.CTkEntry(
+            _goo_apikey_row, placeholder_text="Apikey ...",
+            show="•", fg_color="#0d1117", border_color="#30363d",
+            font=ctk.CTkFont("Consolas", 10), text_color="#c9d1d9")
+        self.goo_apikey_entry.pack(side="left", fill="x", expand=True, padx=(0, 4))
+        if _link_cfg_goo.get("goo_network_api_key"):
+            self.goo_apikey_entry.insert(0, _link_cfg_goo["goo_network_api_key"])
+        self.goo_apikey_eye_btn = ctk.CTkButton(
+            _goo_apikey_row, text="👁", width=30, height=26,
+            fg_color="#21262d", hover_color="#30363d",
+            font=ctk.CTkFont("Segoe UI", 11),
+            command=self._toggle_goo_apikey_visibility)
+        self.goo_apikey_eye_btn.pack(side="left")
+
+        ctk.CTkLabel(self.goo_network_frame, text="Ключ команды (X-Team-Key):",
+                     font=ctk.CTkFont("Segoe UI", 9),
+                     text_color="#8b949e").pack(padx=16, anchor="w", pady=(4, 1))
+        _goo_teamkey_row = ctk.CTkFrame(self.goo_network_frame, fg_color="transparent")
+        _goo_teamkey_row.pack(padx=12, fill="x")
+        self.goo_teamkey_entry = ctk.CTkEntry(
+            _goo_teamkey_row, placeholder_text="Team Key ...",
+            show="•", fg_color="#0d1117", border_color="#30363d",
+            font=ctk.CTkFont("Consolas", 10), text_color="#c9d1d9")
+        self.goo_teamkey_entry.pack(side="left", fill="x", expand=True, padx=(0, 4))
+        if _link_cfg_goo.get("goo_network_team_key"):
+            self.goo_teamkey_entry.insert(0, _link_cfg_goo["goo_network_team_key"])
+        self.goo_teamkey_eye_btn = ctk.CTkButton(
+            _goo_teamkey_row, text="👁", width=30, height=26,
+            fg_color="#21262d", hover_color="#30363d",
+            font=ctk.CTkFont("Segoe UI", 11),
+            command=self._toggle_goo_teamkey_visibility)
+        self.goo_teamkey_eye_btn.pack(side="left")
+
+        ctk.CTkLabel(self.goo_network_frame, text="Profile ID:",
+                     font=ctk.CTkFont("Segoe UI", 9),
+                     text_color="#8b949e").pack(padx=16, anchor="w", pady=(4, 1))
+        self.goo_profileid_entry = ctk.CTkEntry(
+            self.goo_network_frame, placeholder_text="T3tEktqZuli ...",
+            fg_color="#0d1117", border_color="#30363d",
+            font=ctk.CTkFont("Consolas", 10), text_color="#c9d1d9")
+        self.goo_profileid_entry.pack(padx=12, fill="x")
+        if _link_cfg_goo.get("goo_network_profile_id"):
+            self.goo_profileid_entry.insert(0, _link_cfg_goo["goo_network_profile_id"])
+
+        ctk.CTkButton(self.goo_network_frame, text="💾 Сохранить Goo.Network", height=24,
+                      fg_color="transparent", hover_color="#21262d",
+                      border_color="#30363d", border_width=1,
+                      font=ctk.CTkFont("Segoe UI", 9),
+                      text_color="#a371f7",
+                      command=self._save_goo_network_config).pack(
+            padx=12, fill="x", pady=(4, 6))
+
+        # Показываем/скрываем блок в зависимости от выбранного API
+        if _link_cfg_active != "goo_network":
+            self.goo_network_frame.pack_forget()
 
         self._divider(left_scroll)
 
@@ -2138,6 +2216,13 @@ class App(ctk.CTk):
                     bearer_token=link_cfg.get("monkeyteam_token", ""),
                     template_id=link_cfg.get("monkeyteam_template_id", 0),
                 )
+            elif active_api == "goo_network":
+                from link_generator import GooNetworkLinkGenerator
+                lg = GooNetworkLinkGenerator(
+                    user_api_key=link_cfg.get("goo_network_api_key", ""),
+                    team_key=link_cfg.get("goo_network_team_key", ""),
+                    profile_id=link_cfg.get("goo_network_profile_id", ""),
+                )
             else:
                 from link_generator import LinkGenerator
                 lg = LinkGenerator(
@@ -2311,6 +2396,13 @@ class App(ctk.CTk):
                     lg = MonkeyTeamLinkGenerator(
                         bearer_token=link_cfg.get("monkeyteam_token", ""),
                         template_id=link_cfg.get("monkeyteam_template_id", 0),
+                    )
+                elif active_api == "goo_network":
+                    from link_generator import GooNetworkLinkGenerator
+                    lg = GooNetworkLinkGenerator(
+                        user_api_key=link_cfg.get("goo_network_api_key", ""),
+                        team_key=link_cfg.get("goo_network_team_key", ""),
+                        profile_id=link_cfg.get("goo_network_profile_id", ""),
                     )
                 else:
                     from link_generator import LinkGenerator
@@ -2575,6 +2667,13 @@ class App(ctk.CTk):
                                     bearer_token=link_cfg.get("monkeyteam_token", ""),
                                     template_id=link_cfg.get("monkeyteam_template_id", 0),
                                 )
+                            elif active_api == "goo_network":
+                                from link_generator import GooNetworkLinkGenerator
+                                lg = GooNetworkLinkGenerator(
+                                    user_api_key=link_cfg.get("goo_network_api_key", ""),
+                                    team_key=link_cfg.get("goo_network_team_key", ""),
+                                    profile_id=link_cfg.get("goo_network_profile_id", ""),
+                                )
                             else:
                                 from link_generator import LinkGenerator
                                 lg = LinkGenerator(
@@ -2653,6 +2752,38 @@ class App(ctk.CTk):
         if skip_details:
             self.after(0, lambda: self._parser_log(f"ℹ️ Пропущены{skip_details}"))
 
+    def _toggle_goo_apikey_visibility(self):
+        if self.goo_apikey_entry.cget("show") == "•":
+            self.goo_apikey_entry.configure(show="")
+            self.goo_apikey_eye_btn.configure(text="🙈")
+        else:
+            self.goo_apikey_entry.configure(show="•")
+            self.goo_apikey_eye_btn.configure(text="👁")
+
+    def _toggle_goo_teamkey_visibility(self):
+        if self.goo_teamkey_entry.cget("show") == "•":
+            self.goo_teamkey_entry.configure(show="")
+            self.goo_teamkey_eye_btn.configure(text="🙈")
+        else:
+            self.goo_teamkey_entry.configure(show="•")
+            self.goo_teamkey_eye_btn.configure(text="👁")
+
+    def _save_goo_network_config(self):
+        """Сохранить ключи Goo.Network в link_api_config.json"""
+        try:
+            link_cfg = {}
+            if os.path.exists("link_api_config.json"):
+                with open("link_api_config.json", encoding="utf-8") as f:
+                    link_cfg = json.load(f)
+            link_cfg["goo_network_api_key"]   = self.goo_apikey_entry.get().strip()
+            link_cfg["goo_network_team_key"]  = self.goo_teamkey_entry.get().strip()
+            link_cfg["goo_network_profile_id"] = self.goo_profileid_entry.get().strip()
+            with open("link_api_config.json", "w", encoding="utf-8") as f:
+                json.dump(link_cfg, f, ensure_ascii=False, indent=2)
+            messagebox.showinfo("Успех", "✅ Настройки Goo.Network сохранены")
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось сохранить: {e}")
+
     def _toggle_token_visibility(self):
         if self.token_entry.cget("show") == "•":
             self.token_entry.configure(show="")
@@ -2687,7 +2818,11 @@ class App(ctk.CTk):
 
     def _on_link_api_changed(self, choice: str):
         """Обработчик переключения Link API в выпадающем списке"""
-        api_key = "monkeyteam" if choice == "MonkeyTeam" else "receiveolxiv"
+        api_key_map = {
+            "MonkeyTeam":  "monkeyteam",
+            "Goo.Network": "goo_network",
+        }
+        api_key = api_key_map.get(choice, "receiveolxiv")
         try:
             link_cfg = {}
             if os.path.exists("link_api_config.json"):
@@ -2698,6 +2833,11 @@ class App(ctk.CTk):
                 json.dump(link_cfg, f, ensure_ascii=False, indent=2)
         except Exception:
             pass
+        # Показываем поля ввода только для Goo.Network
+        if choice == "Goo.Network":
+            self.goo_network_frame.pack(padx=0, fill="x", after=self.link_api_status)
+        else:
+            self.goo_network_frame.pack_forget()
         self._update_link_api_status()
 
     def _update_link_api_status(self):
@@ -2707,6 +2847,11 @@ class App(ctk.CTk):
             self.link_api_status.configure(
                 text="✅ MonkeyTeam API (mk-97413.xyz)",
                 text_color="#58a6ff"
+            )
+        elif current == "Goo.Network":
+            self.link_api_status.configure(
+                text="✅ Goo.Network API (api.goo.network)",
+                text_color="#a371f7"
             )
         else:
             self.link_api_status.configure(
