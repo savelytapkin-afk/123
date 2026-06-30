@@ -2857,8 +2857,9 @@ class App(ctk.CTk):
             }
             lines = []
             for label, auth_val in [
-                ("A (team_key в Authorization)", team_key),
-                ("B (user_key в Authorization)", api_key),
+                ("A: Authorization=user_key + Host", api_key),
+                ("B: Authorization=team_key + Host", team_key),
+                ("C: Authorization=user_key, no Host", api_key),
             ]:
                 try:
                     hdrs = {
@@ -2867,6 +2868,8 @@ class App(ctk.CTk):
                         "Content-Type":  "application/json",
                         "Accept":        "application/json",
                     }
+                    if "Host" in label:
+                        hdrs["Host"] = "api.goo.network"
                     r = _requests.post(url, json=payload, headers=hdrs, timeout=20)
                     lines.append(
                         f"[{label}]\n"
@@ -2876,8 +2879,9 @@ class App(ctk.CTk):
                     lines.append(f"[{label}]\n  Ошибка: {e}")
 
             result = (
-                f"profileID: {profile_id}\n"
-                f"X-Team-Key: {'*'*8}{team_key[-6:]}\n\n"
+                f"user_key: {'*'*8}{api_key[-6:]}\n"
+                f"team_key: {'*'*8}{team_key[-6:]}\n"
+                f"profileID: {profile_id}\n\n"
                 + "\n\n".join(lines)
             )
             self.after(0, lambda: messagebox.showinfo("Goo.Network Тест", result))
