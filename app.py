@@ -310,16 +310,22 @@ def dolphin_stop(profile_id: str, token: str):
 def get_driver(automation: dict) -> webdriver.Remote:
     from selenium.webdriver.chrome.service import Service
     opts = Options()
-    opts.add_experimental_option("debuggerAddress", f"127.0.0.1:{automation['port']}")
+    port = automation.get("port", "")
+    opts.add_experimental_option("debuggerAddress", f"127.0.0.1:{port}")
 
     # 1. Путь от Dolphin
     driver_path = automation.get("webdriver", "")
+    print(f"[DEBUG] Dolphin automation: port={port}, webdriver='{driver_path}'")
+    print(f"[DEBUG] webdriver exists: {os.path.exists(driver_path) if driver_path else False}")
 
     # 2. Локальный chromedriver.exe рядом с проектом (запасной вариант)
     if not driver_path or not os.path.exists(driver_path):
         local_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chromedriver.exe")
+        print(f"[DEBUG] Trying local chromedriver: {local_path}, exists: {os.path.exists(local_path)}")
         if os.path.exists(local_path):
             driver_path = local_path
+
+    print(f"[DEBUG] Using chromedriver: '{driver_path}'")
 
     if driver_path and os.path.exists(driver_path):
         service = Service(executable_path=driver_path)
