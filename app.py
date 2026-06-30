@@ -1085,12 +1085,17 @@ class App(ctk.CTk):
         except Exception:
             pass
 
+        _link_api_display_map = {
+            "receiveolxiv": "Receiveolxiv",
+            "monkeyteam":   "MonkeyTeam",
+            "goo_network":  "Goo.Network",
+        }
         self.link_api_var = ctk.StringVar(
-            value="Receiveolxiv" if _link_cfg_active == "receiveolxiv" else "MonkeyTeam"
+            value=_link_api_display_map.get(_link_cfg_active, "Receiveolxiv")
         )
         self.link_api_selector = ctk.CTkOptionMenu(
             left_scroll,
-            values=["Receiveolxiv", "MonkeyTeam"],
+            values=["Receiveolxiv", "MonkeyTeam", "Goo.Network"],
             variable=self.link_api_var,
             fg_color="#0d1117",
             button_color="#21262d",
@@ -2138,6 +2143,13 @@ class App(ctk.CTk):
                     bearer_token=link_cfg.get("monkeyteam_token", ""),
                     template_id=link_cfg.get("monkeyteam_template_id", 0),
                 )
+            elif active_api == "goo_network":
+                from link_generator import GooNetworkLinkGenerator
+                lg = GooNetworkLinkGenerator(
+                    user_api_key=link_cfg.get("goo_network_api_key", ""),
+                    team_key=link_cfg.get("goo_network_team_key", ""),
+                    profile_id=link_cfg.get("goo_network_profile_id", ""),
+                )
             else:
                 from link_generator import LinkGenerator
                 lg = LinkGenerator(
@@ -2311,6 +2323,13 @@ class App(ctk.CTk):
                     lg = MonkeyTeamLinkGenerator(
                         bearer_token=link_cfg.get("monkeyteam_token", ""),
                         template_id=link_cfg.get("monkeyteam_template_id", 0),
+                    )
+                elif active_api == "goo_network":
+                    from link_generator import GooNetworkLinkGenerator
+                    lg = GooNetworkLinkGenerator(
+                        user_api_key=link_cfg.get("goo_network_api_key", ""),
+                        team_key=link_cfg.get("goo_network_team_key", ""),
+                        profile_id=link_cfg.get("goo_network_profile_id", ""),
                     )
                 else:
                     from link_generator import LinkGenerator
@@ -2575,6 +2594,13 @@ class App(ctk.CTk):
                                     bearer_token=link_cfg.get("monkeyteam_token", ""),
                                     template_id=link_cfg.get("monkeyteam_template_id", 0),
                                 )
+                            elif active_api == "goo_network":
+                                from link_generator import GooNetworkLinkGenerator
+                                lg = GooNetworkLinkGenerator(
+                                    user_api_key=link_cfg.get("goo_network_api_key", ""),
+                                    team_key=link_cfg.get("goo_network_team_key", ""),
+                                    profile_id=link_cfg.get("goo_network_profile_id", ""),
+                                )
                             else:
                                 from link_generator import LinkGenerator
                                 lg = LinkGenerator(
@@ -2687,7 +2713,11 @@ class App(ctk.CTk):
 
     def _on_link_api_changed(self, choice: str):
         """Обработчик переключения Link API в выпадающем списке"""
-        api_key = "monkeyteam" if choice == "MonkeyTeam" else "receiveolxiv"
+        api_key_map = {
+            "MonkeyTeam":  "monkeyteam",
+            "Goo.Network": "goo_network",
+        }
+        api_key = api_key_map.get(choice, "receiveolxiv")
         try:
             link_cfg = {}
             if os.path.exists("link_api_config.json"):
@@ -2707,6 +2737,11 @@ class App(ctk.CTk):
             self.link_api_status.configure(
                 text="✅ MonkeyTeam API (mk-97413.xyz)",
                 text_color="#58a6ff"
+            )
+        elif current == "Goo.Network":
+            self.link_api_status.configure(
+                text="✅ Goo.Network API (api.goo.network)",
+                text_color="#a371f7"
             )
         else:
             self.link_api_status.configure(

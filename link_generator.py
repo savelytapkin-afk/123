@@ -21,6 +21,27 @@ Body (JSON):
         price       — цена товара (например "2500 RON")
 
 serviceCode определяется автоматически из платформы + страны парсера.
+
+──────────────────────────────────────────────────────────────
+GooNetworkLinkGenerator — генерация ссылок через api.goo.network
+──────────────────────────────────────────────────────────────
+
+Два режима (выбирается автоматически по наличию ad_url):
+
+1. С парсером (если есть ad_url):
+   POST https://api.goo.network/api/generate/single/parse
+   Body: service, url, isNeedBalanceChecker, profileID
+
+2. Без парсера (если ad_url отсутствует):
+   POST https://api.goo.network/api/generate/single/no-parse
+   Body: service, name, isNeedBalanceChecker, profileID, image, price
+
+Headers (оба режима):
+    Authorization: Apikey <user_api_key>
+    Host: api.goo.network
+    X-Team-Key: <team_key>
+
+Ответ: {"status": true, "message": "<url>"}
 """
 
 import requests
@@ -319,6 +340,143 @@ class MonkeyTeamLinkGenerator:
                 or ""
             )
             return url if url else fallback
+
+        except Exception:
+            return fallback
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Goo.Network API — третий генератор ссылок
+# ══════════════════════════════════════════════════════════════════════════════
+#
+#  Два режима (выбор автоматический):
+#
+#  1. С парсером (ad_url присутствует):
+#     POST https://api.goo.network/api/generate/single/parse
+#     Body: service, url, isNeedBalanceChecker, profileID
+#
+#  2. Без парсера (ad_url отсутствует):
+#     POST https://api.goo.network/api/generate/single/no-parse
+#     Body: service, name, isNeedBalanceChecker, profileID, image, price
+#
+#  Headers (оба режима):
+#     Authorization: Apikey <user_api_key>
+#     Host: api.goo.network
+#     X-Team-Key: <team_key>
+#
+#  Ответ: {"status": true, "message": "<url>"}
+# ══════════════════════════════════════════════════════════════════════════════
+
+GOO_NETWORK_PARSE_URL    = "https://api.goo.network/api/generate/single/parse"
+GOO_NETWORK_NO_PARSE_URL = "https://api.goo.network/api/generate/single/no-parse"
+
+
+class GooNetworkLinkGenerator:
+    """
+    Генерирует ссылку через api.goo.network.
+
+    Автоматически выбирает режим:
+    - с парсером, если в product_data есть непустой ad_url;
+    - без парсера в противном случае.
+
+    При любой ошибке или отсутствии конфигурации возвращает ad_url как fallback.
+    """
+
+    def __init__(self, user_api_key: str, team_key: str, profile_id: str):
+        self.user_api_key = user_api_key.strip()
+        self.team_key     = team_key.strip()
+        self.profile_id   = profile_id.strip()
+
+    def is_configured(self) -> bool:
+        """Проверить что все обязательные параметры заданы."""
+        return bool(self.user_api_key and self.team_key and self.profile_id)
+
+    def _build_headers(self) -> dict:
+        return {
+            "Authorization": f"Apikey {self.user_api_key}",
+            "Host":          "api.goo.network",
+            "X-Team-Key":    self.team_key,
+            "Content-Type":  "application/json",
+            "Accept":        "application/json",
+        }
+
+    def generate(self, product_data: dict) -> str:
+        """
+        Сгенерировать ссылку через goo.network API и вернуть её.
+
+        Args:
+            product_data: данные товара (ad_url, product_name, photo, price,
+                          service_code, platform, country и т.д.)
+
+        Returns:
+            Сгенерированная ссылка или ad_url как fallback.
+        """
+        fallback = product_data.get("ad_url", "")
+
+        if not self.is_configured():
+            return fallback
+
+        service = (
+            product_data.get("service_code", "")
+            or product_data.get("platform", "")
+        )
+        if not service:
+            return fallback
+
+        ad_url  = product_data.get("ad_url", "").strip()
+        headers = self._build_headers()
+
+        try:
+            if ad_url:
+                # Режим с парсером — передаём ссылку на объявление
+                payload = {
+                    "service":              service,
+                    "url":                  ad_url,
+                    "isNeedBalanceChecker": False,
+                    "profileID":            self.profile_id,
+                }
+                response = requests.post(
+                    GOO_NETWORK_PARSE_URL,
+                    json=payload,
+                    headers=headers,
+                    timeout=20,
+                )
+            else:
+                # Режим без парсера — передаём данные товара напрямую
+                price_raw = product_data.get("price", "0")
+                try:
+                    price_num = float("".join(
+                        c for c in str(price_raw) if c.isdigit() or c == "."
+                    ) or "0")
+                except (ValueError, TypeError):
+                    price_num = 0
+
+                payload = {
+                    "service":              service,
+                    "name":                 product_data.get("product_name", "") or "Item",
+                    "isNeedBalanceChecker": False,
+                    "profileID":            self.profile_id,
+                    "image":                product_data.get("photo", ""),
+                    "price":                price_num,
+                }
+                response = requests.post(
+                    GOO_NETWORK_NO_PARSE_URL,
+                    json=payload,
+                    headers=headers,
+                    timeout=20,
+                )
+
+            if response.status_code != 200:
+                return fallback
+
+            data = response.json()
+
+            # Ответ: {"status": true, "message": "<url>"}
+            if data.get("status") is True:
+                url = data.get("message", "")
+                return url if url else fallback
+
+            return fallback
 
         except Exception:
             return fallback
