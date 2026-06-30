@@ -3558,11 +3558,6 @@ class App(ctk.CTk):
                     country = parts[1].upper()
                     break
 
-        # Добавляем страну в фильтры для мультистраночных площадок
-        # (если страна не была явно задана пользователем и не попала в filters)
-        if country and "country" not in filters:
-            filters["country"] = country
-
         platform = selected_platforms[0]
         platform_names = ", ".join(service_codes)
         
