@@ -392,8 +392,10 @@ class GooNetworkLinkGenerator:
         return bool(self.user_api_key and self.team_key and self.profile_id)
 
     def _build_headers(self) -> dict:
+        # no-parse endpoint: Authorization = Apikey <team_key> (не user_api_key)
+        # Документация: https://docs.goo.network/core/generaciya-dannykh/generaciya-ssylki
         return {
-            "Authorization": f"Apikey {self.user_api_key}",
+            "Authorization": f"Apikey {self.team_key}",
             "X-Team-Key":    self.team_key,
             "Content-Type":  "application/json",
             "Accept":        "application/json",

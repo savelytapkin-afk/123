@@ -2843,7 +2843,7 @@ class App(ctk.CTk):
         def _do_test():
             try:
                 headers = {
-                    "Authorization": f"Apikey {api_key}",
+                    "Authorization": f"Apikey {team_key}",
                     "X-Team-Key":    team_key,
                     "Content-Type":  "application/json",
                     "Accept":        "application/json",
