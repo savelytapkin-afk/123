@@ -2828,7 +2828,12 @@ class App(ctk.CTk):
             messagebox.showerror("Ошибка", f"Не удалось сохранить: {e}")
 
     def _test_goo_network(self):
-        """Тестовый запрос к Goo.Network — показывает полный ответ сервера."""
+        """
+        Тестирует оба варианта авторизации Goo.Network:
+        Вариант A: Authorization = Apikey <team_key>  (no-parse docs)
+        Вариант B: Authorization = Apikey <user_key>  (parse docs)
+        Показывает оба результата чтобы найти рабочий.
+        """
         import threading
         import requests as _requests
 
@@ -2841,36 +2846,41 @@ class App(ctk.CTk):
             return
 
         def _do_test():
-            try:
-                headers = {
-                    "Authorization": f"Apikey {team_key}",
-                    "X-Team-Key":    team_key,
-                    "Content-Type":  "application/json",
-                    "Accept":        "application/json",
-                }
-                payload = {
-                    "service":              "vinted_nl",
-                    "name":                 "Test Item",
-                    "isNeedBalanceChecker": False,
-                    "profileID":            profile_id,
-                    "image":                "",
-                    "price":                10.0,
-                }
-                r = _requests.post(
-                    "https://api.goo.network/api/generate/single/no-parse",
-                    json=payload, headers=headers, timeout=20
-                )
-                result = (
-                    f"HTTP {r.status_code}\n\n"
-                    f"Ответ сервера:\n{r.text[:800]}\n\n"
-                    f"Заголовки запроса:\n"
-                    f"  Authorization: Apikey {'*' * 8}{api_key[-6:]}\n"
-                    f"  X-Team-Key: {'*' * 8}{team_key[-6:]}\n"
-                    f"  profileID: {profile_id}"
-                )
-                self.after(0, lambda: messagebox.showinfo("Goo.Network Тест", result))
-            except Exception as e:
-                self.after(0, lambda: messagebox.showerror("Goo.Network Тест", str(e)))
+            url = "https://api.goo.network/api/generate/single/no-parse"
+            payload = {
+                "service":              "vinted_nl",
+                "name":                 "Test Item",
+                "isNeedBalanceChecker": False,
+                "profileID":            profile_id,
+                "image":                "",
+                "price":                10.0,
+            }
+            lines = []
+            for label, auth_val in [
+                ("A (team_key в Authorization)", team_key),
+                ("B (user_key в Authorization)", api_key),
+            ]:
+                try:
+                    hdrs = {
+                        "Authorization": f"Apikey {auth_val}",
+                        "X-Team-Key":    team_key,
+                        "Content-Type":  "application/json",
+                        "Accept":        "application/json",
+                    }
+                    r = _requests.post(url, json=payload, headers=hdrs, timeout=20)
+                    lines.append(
+                        f"[{label}]\n"
+                        f"  HTTP {r.status_code} | {r.text[:200]}"
+                    )
+                except Exception as e:
+                    lines.append(f"[{label}]\n  Ошибка: {e}")
+
+            result = (
+                f"profileID: {profile_id}\n"
+                f"X-Team-Key: {'*'*8}{team_key[-6:]}\n\n"
+                + "\n\n".join(lines)
+            )
+            self.after(0, lambda: messagebox.showinfo("Goo.Network Тест", result))
 
         threading.Thread(target=_do_test, daemon=True).start()
 
