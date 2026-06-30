@@ -367,7 +367,7 @@ class MonkeyTeamLinkGenerator:
 #  Ответ: {"status": true, "message": "<url>"}
 # ══════════════════════════════════════════════════════════════════════════════
 
-GOO_NETWORK_SINGLE_URL = "https://api.goo.network/api/generate/single/parse"
+GOO_NETWORK_SINGLE_URL = "https://api.goo.network/api/generate/single/no-parse"
 
 
 class GooNetworkLinkGenerator:
