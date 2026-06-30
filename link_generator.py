@@ -409,75 +409,77 @@ class GooNetworkLinkGenerator:
                           service_code, platform, country и т.д.)
 
         Returns:
-            Сгенерированная ссылка или ad_url как fallback.
-        """
-        fallback = product_data.get("ad_url", "")
+            Сгенерированная ссылка.
 
+        Raises:
+            RuntimeError: если API недоступен или вернул ошибку.
+        """
         if not self.is_configured():
-            return fallback
+            raise RuntimeError(
+                "Goo.Network: не заполнены ключи (Apikey / Team Key / Profile ID). "
+                "Заполни их в настройках приложения."
+            )
 
         service = (
             product_data.get("service_code", "")
             or product_data.get("platform", "")
         )
         if not service:
-            return fallback
+            raise RuntimeError("Goo.Network: не определён сервис-код товара.")
 
         ad_url  = product_data.get("ad_url", "").strip()
         headers = self._build_headers()
 
-        try:
-            if ad_url:
-                # Режим с парсером — передаём ссылку на объявление
-                payload = {
-                    "service":              service,
-                    "url":                  ad_url,
-                    "isNeedBalanceChecker": False,
-                    "profileID":            self.profile_id,
-                }
-                response = requests.post(
-                    GOO_NETWORK_PARSE_URL,
-                    json=payload,
-                    headers=headers,
-                    timeout=20,
-                )
-            else:
-                # Режим без парсера — передаём данные товара напрямую
-                price_raw = product_data.get("price", "0")
-                try:
-                    price_num = float("".join(
-                        c for c in str(price_raw) if c.isdigit() or c == "."
-                    ) or "0")
-                except (ValueError, TypeError):
-                    price_num = 0
+        if ad_url:
+            # Режим с парсером — передаём ссылку на объявление
+            endpoint = GOO_NETWORK_PARSE_URL
+            payload = {
+                "service":              service,
+                "url":                  ad_url,
+                "isNeedBalanceChecker": False,
+                "profileID":            self.profile_id,
+            }
+        else:
+            # Режим без парсера — передаём данные товара напрямую
+            price_raw = product_data.get("price", "0")
+            try:
+                price_num = float("".join(
+                    c for c in str(price_raw) if c.isdigit() or c == "."
+                ) or "0")
+            except (ValueError, TypeError):
+                price_num = 0
 
-                payload = {
-                    "service":              service,
-                    "name":                 product_data.get("product_name", "") or "Item",
-                    "isNeedBalanceChecker": False,
-                    "profileID":            self.profile_id,
-                    "image":                product_data.get("photo", ""),
-                    "price":                price_num,
-                }
-                response = requests.post(
-                    GOO_NETWORK_NO_PARSE_URL,
-                    json=payload,
-                    headers=headers,
-                    timeout=20,
-                )
+            endpoint = GOO_NETWORK_NO_PARSE_URL
+            payload = {
+                "service":              service,
+                "name":                 product_data.get("product_name", "") or "Item",
+                "isNeedBalanceChecker": False,
+                "profileID":            self.profile_id,
+                "image":                product_data.get("photo", ""),
+                "price":                price_num,
+            }
 
-            if response.status_code != 200:
-                return fallback
+        response = requests.post(endpoint, json=payload, headers=headers, timeout=20)
 
-            data = response.json()
+        if response.status_code != 200:
+            try:
+                msg = response.json().get("message", response.text[:200])
+            except Exception:
+                msg = response.text[:200]
+            raise RuntimeError(
+                f"Goo.Network HTTP {response.status_code}: {msg}"
+            )
 
-            # Ответ: {"status": true, "message": "<url>"}
-            if data.get("status") is True:
-                url = data.get("message", "")
-                return url if url else fallback
+        data = response.json()
 
-            return fallback
+        # Ответ: {"status": true, "message": "<url>"}
+        if data.get("status") is True:
+            url = data.get("message", "")
+            if url:
+                return url
+            raise RuntimeError("Goo.Network вернул пустую ссылку.")
 
-        except Exception:
-            return fallback
+        raise RuntimeError(
+            f"Goo.Network ошибка: {data.get('message', str(data)[:200])}"
+        )
 

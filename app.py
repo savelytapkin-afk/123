@@ -2198,7 +2198,8 @@ class App(ctk.CTk):
         Вызывается и из локальной БД и после поиска в парсере.
         """
         # ── Генерация ссылки через Link API ──
-        link = ""
+        link      = ""
+        link_note = ""
         try:
             link_cfg = {}
             if os.path.exists("link_api_config.json"):
@@ -2232,8 +2233,14 @@ class App(ctk.CTk):
 
             if lg.is_configured():
                 link = lg.generate(found_with_sc)
-        except Exception:
-            link = found.get("ad_url", "")  # fallback
+            else:
+                link_note = f"⚠️ Link API ({active_api}): ключи не заполнены — используется оригинальная ссылка"
+        except RuntimeError as e:
+            link_note = f"⚠️ {e}"
+            link = ""
+        except Exception as e:
+            link_note = f"⚠️ Ошибка Link API: {str(e)[:120]}"
+            link = ""
 
         # ── Рендер HTML ──
         data = {
@@ -2266,10 +2273,16 @@ class App(ctk.CTk):
             if html:
                 self.reply_html_box.delete("1.0", "end")
                 self.reply_html_box.insert("1.0", html)
-                self.reply_status_label.configure(
-                    text=f"✅ HTML сгенерирован для {email}",
-                    text_color="#3fb950"
-                )
+                if link_note:
+                    self.reply_status_label.configure(
+                        text=link_note,
+                        text_color="#d29922"
+                    )
+                else:
+                    self.reply_status_label.configure(
+                        text=f"✅ HTML сгенерирован для {email}",
+                        text_color="#3fb950"
+                    )
             else:
                 self.reply_html_box.delete("1.0", "end")
                 self.reply_html_box.insert("1.0", "⚠️ Шаблон для платформы не задан.\n"
@@ -2379,7 +2392,8 @@ class App(ctk.CTk):
         """
         try:
             # ── 1. Генерация ссылки через Link API ──
-            link = ""
+            link      = ""
+            link_note = ""
             try:
                 link_cfg = {}
                 if os.path.exists("link_api_config.json"):
@@ -2413,8 +2427,19 @@ class App(ctk.CTk):
 
                 if lg.is_configured():
                     link = lg.generate(found_with_sc)
-            except Exception:
-                link = found.get("ad_url", "")
+                else:
+                    link_note = f"⚠️ Link API ({active_api}): ключи не заполнены"
+            except RuntimeError as e:
+                link_note = f"⚠️ {e}"
+                link = ""
+            except Exception as e:
+                link_note = f"⚠️ Ошибка Link API: {str(e)[:120]}"
+                link = ""
+
+            if link_note:
+                self.after(0, lambda n=link_note: self.reply_status_label.configure(
+                    text=n, text_color="#d29922"
+                ))
 
             # ── 2. Рендер HTML шаблона ──
             data = {
@@ -2683,8 +2708,18 @@ class App(ctk.CTk):
 
                             if lg.is_configured():
                                 link = lg.generate(found_with_sc)
-                        except Exception:
-                            link = record.get("ad_url", "")
+                            else:
+                                self.after(0, lambda a=active_api: self._parser_log(
+                                    f"⚠️ Link API ({a}): ключи не заполнены — используется оригинальная ссылка"
+                                ))
+                        except RuntimeError as e:
+                            link = ""
+                            self.after(0, lambda msg=str(e): self._parser_log(f"⚠️ {msg}"))
+                        except Exception as e:
+                            link = ""
+                            self.after(0, lambda msg=str(e)[:120]: self._parser_log(
+                                f"⚠️ Ошибка Link API: {msg}"
+                            ))
 
                         # Рендер HTML
                         data = {
