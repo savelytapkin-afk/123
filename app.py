@@ -1178,13 +1178,21 @@ class App(ctk.CTk):
         if _link_cfg_goo.get("goo_network_profile_id"):
             self.goo_profileid_entry.insert(0, _link_cfg_goo["goo_network_profile_id"])
 
-        ctk.CTkButton(self.goo_network_frame, text="💾 Сохранить Goo.Network", height=24,
+        _goo_btn_row = ctk.CTkFrame(self.goo_network_frame, fg_color="transparent")
+        _goo_btn_row.pack(padx=12, fill="x", pady=(4, 2))
+        ctk.CTkButton(_goo_btn_row, text="💾 Сохранить", height=24,
                       fg_color="transparent", hover_color="#21262d",
                       border_color="#30363d", border_width=1,
                       font=ctk.CTkFont("Segoe UI", 9),
                       text_color="#a371f7",
                       command=self._save_goo_network_config).pack(
-            padx=12, fill="x", pady=(4, 6))
+            side="left", fill="x", expand=True, padx=(0, 4))
+        ctk.CTkButton(_goo_btn_row, text="🔌 Тест", height=24,
+                      fg_color="transparent", hover_color="#21262d",
+                      border_color="#30363d", border_width=1,
+                      font=ctk.CTkFont("Segoe UI", 9),
+                      text_color="#58a6ff",
+                      command=self._test_goo_network).pack(side="left")
 
         # Показываем/скрываем блок в зависимости от выбранного API
         if _link_cfg_active != "goo_network":
@@ -2810,14 +2818,61 @@ class App(ctk.CTk):
             if os.path.exists("link_api_config.json"):
                 with open("link_api_config.json", encoding="utf-8") as f:
                     link_cfg = json.load(f)
-            link_cfg["goo_network_api_key"]   = self.goo_apikey_entry.get().strip()
-            link_cfg["goo_network_team_key"]  = self.goo_teamkey_entry.get().strip()
+            link_cfg["goo_network_api_key"]    = self.goo_apikey_entry.get().strip()
+            link_cfg["goo_network_team_key"]   = self.goo_teamkey_entry.get().strip()
             link_cfg["goo_network_profile_id"] = self.goo_profileid_entry.get().strip()
             with open("link_api_config.json", "w", encoding="utf-8") as f:
                 json.dump(link_cfg, f, ensure_ascii=False, indent=2)
             messagebox.showinfo("Успех", "✅ Настройки Goo.Network сохранены")
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось сохранить: {e}")
+
+    def _test_goo_network(self):
+        """Тестовый запрос к Goo.Network — показывает полный ответ сервера."""
+        import threading
+        import requests as _requests
+
+        api_key    = self.goo_apikey_entry.get().strip()
+        team_key   = self.goo_teamkey_entry.get().strip()
+        profile_id = self.goo_profileid_entry.get().strip()
+
+        if not (api_key and team_key and profile_id):
+            messagebox.showwarning("Goo.Network", "Заполни все три поля перед тестом.")
+            return
+
+        def _do_test():
+            try:
+                headers = {
+                    "Authorization": f"Apikey {api_key}",
+                    "X-Team-Key":    team_key,
+                    "Content-Type":  "application/json",
+                    "Accept":        "application/json",
+                }
+                payload = {
+                    "service":              "vinted_nl",
+                    "name":                 "Test Item",
+                    "isNeedBalanceChecker": False,
+                    "profileID":            profile_id,
+                    "image":                "",
+                    "price":                10.0,
+                }
+                r = _requests.post(
+                    "https://api.goo.network/api/generate/single/no-parse",
+                    json=payload, headers=headers, timeout=20
+                )
+                result = (
+                    f"HTTP {r.status_code}\n\n"
+                    f"Ответ сервера:\n{r.text[:800]}\n\n"
+                    f"Заголовки запроса:\n"
+                    f"  Authorization: Apikey {'*' * 8}{api_key[-6:]}\n"
+                    f"  X-Team-Key: {'*' * 8}{team_key[-6:]}\n"
+                    f"  profileID: {profile_id}"
+                )
+                self.after(0, lambda: messagebox.showinfo("Goo.Network Тест", result))
+            except Exception as e:
+                self.after(0, lambda: messagebox.showerror("Goo.Network Тест", str(e)))
+
+        threading.Thread(target=_do_test, daemon=True).start()
 
     def _toggle_token_visibility(self):
         if self.token_entry.cget("show") == "•":
