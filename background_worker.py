@@ -20,6 +20,69 @@ from parser_client import ParserClient
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Платформо-специфичные ограничения фильтров
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Платформы с фиксированной страной — параметр country не нужен и не поддерживается
+SINGLE_COUNTRY_PLATFORMS = {
+    "marktplaats", "subito", "2dehands", "2ememain", "wallapop",
+    "finn", "jofogas", "kleinanzeigen", "quoka", "leboncoin",
+    "milanuncios", "mercari", "kijiji", "offerup", "blocket",
+    "dba", "tori", "skelbiu", "bazaraki", "beebs", "insomnia",
+    "tise", "laendleanzeiger", "willhaben", "tutti", "anibis",
+    "ricardo", "marko", "bolha", "oglasi", "njuskalo", "mojekrpice",
+    "vendora", "trademe",
+}
+
+# Фильтры поддерживаемые каждой платформой (None = все разрешены)
+# Указываем только ограниченные платформы; остальные получают все фильтры
+PLATFORM_ALLOWED_FILTERS: Dict[str, set] = {
+    "marktplaats": {"category", "price", "delivery", "ads", "reviews",
+                    "phone", "registration", "limit", "publication", "blacklist"},
+    "subito":      {"category", "price", "delivery", "ads", "sells",
+                    "registration", "limit", "publication", "blacklist"},
+    "2dehands":    {"category", "price", "ads", "sells", "reviews",
+                    "limit", "publication", "blacklist"},
+    "2ememain":    {"category", "price", "ads", "sells", "reviews",
+                    "limit", "publication", "blacklist"},
+    "wallapop":    {"category", "price", "delivery", "ads", "sells",
+                    "buys", "reviews", "registration", "limit", "publication", "blacklist"},
+    "finn":        {"category", "price", "ads", "reviews", "registration",
+                    "limit", "publication", "blacklist"},
+    "jofogas":     {"category", "price", "delivery", "ads", "reviews",
+                    "phone", "registration", "limit", "publication", "blacklist"},
+    "kleinanzeigen": {"category", "price", "delivery", "ads", "registration",
+                      "limit", "publication", "blacklist"},
+    "dba":         {"category", "price", "ads", "reviews", "registration",
+                    "limit", "publication", "blacklist"},
+    "tori":        {"category", "price", "delivery", "ads", "reviews",
+                    "registration", "limit", "publication", "blacklist"},
+    "blocket":     {"category", "price", "ads", "reviews", "registration",
+                    "limit", "publication", "blacklist"},
+}
+
+
+def _build_platform_filters(platform: str, base_filters: dict) -> dict:
+    """
+    Строит фильтры для конкретной платформы:
+    - убирает country для одностраночных площадок
+    - оставляет только поддерживаемые параметры если заданы ограничения
+    """
+    filters = dict(base_filters)
+
+    # Убираем country для площадок с фиксированной страной
+    if platform in SINGLE_COUNTRY_PLATFORMS:
+        filters.pop("country", None)
+
+    # Оставляем только разрешённые фильтры если список задан
+    allowed = PLATFORM_ALLOWED_FILTERS.get(platform)
+    if allowed is not None:
+        filters = {k: v for k, v in filters.items() if k in allowed}
+
+    return filters
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Вспомогательные типы
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -277,18 +340,28 @@ class FetcherThread(threading.Thread):
                 queue_size = self.email_queue.size()
                 self.on_update(f"🔄 Запрос к парсеру ({current_platform})... | В очереди: {queue_size}")
                 try:
+                    platform_filters = _build_platform_filters(
+                        current_platform, self.filters
+                    )
                     records, status = self.parser_client.fetch_with_metadata(
-                        current_platform, filters=dict(self.filters)
+                        current_platform, filters=platform_filters
                     )
 
                     if records:
                         # Добавляем service_code в каждую запись
                         for r in records:
                             if not r.get("service_code"):
-                                # Используем маппинг если есть, иначе конструируем
                                 if current_platform in self.service_codes_map:
+                                    # Явный маппинг из настроек (приоритет)
                                     r["service_code"] = self.service_codes_map[current_platform]
+                                elif current_platform in SINGLE_COUNTRY_PLATFORMS:
+                                    # Для одностраночных площадок берём суффикс из ad_url если возможно,
+                                    # или конструируем из имени платформы (marktplaats → marktplaats_nl)
+                                    from link_generator import _derive_service_from_url
+                                    derived = _derive_service_from_url(r.get("ad_url", ""))
+                                    r["service_code"] = derived or current_platform
                                 else:
+                                    # Мультистраночные площадки: берём страну из фильтра
                                     country = self.filters.get("country", "").lower()
                                     r["service_code"] = f"{current_platform}_{country}" if country else current_platform
 
