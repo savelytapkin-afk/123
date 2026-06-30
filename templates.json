@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Деловое предложение",
+    "subject": "{la prego di rispondere|la prego di rispondermi|attendo una Sua risposta|mi risponda per favore|potrebbe rispondermi?|risponda subito|mi faccia sapere|mi dica qualcosa|non mi lasci in attesa|sono in attesa|aspetto una risposta|risponda quando può|mi contatti|mi mandi un messaggio|fammi sapere|rispondimi|ti prego rispondimi|aspetto tuo messaggio|dammi un segnale|fatti sentire}",
+    "body": "{Salve|Buongiorno|Buonasera} {ho visto il Suo annuncio|ho visto il capo che vende|sono interessato a questo articolo} {è ancora disponibile?|non è già venduto?|è in vendita?} {Vorrei comprarlo|Sono pronto a prenderlo|Lo prendo subito} {che taglia è?|quanto costa?|può spedirlo?|dove ci vediamo?|posso vederlo?|accetta contanti?|accetta PayPal?} {La prego, mi risponda|mi faccia sapere|mi dica anche solo sì o no|non mi lasci senza risposta|sono un acquirente serio|ho i soldi pronti|posso concludere oggi stesso} {Attendo una Sua risposta|Spero in un Suo riscontro|La ringrazio in anticipo}"
+  },
+  {
+    "name": "Информационное письмо",
+    "subject": "Важная информация для вас",
+    "body": "Добрый день!\n\nСообщаем вам о важных изменениях.\n\nС уважением,\nКоманда"
+  },
+  {
+    "name": "123",
+    "subject": "",
+    "body": ""
+  }
+]

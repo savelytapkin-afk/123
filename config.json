@@ -1,0 +1,23 @@
+{
+  "dolphin_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIxIiwianRpIjoiNWE5YzY0ZGQ2OTJmZmY1NjQ0MzMxYTkxMjM3YzczNTZlYjE3NTUzYzVhODkzZWZjZTA4YjVkMGNhMmMwYzg0NWUyYWU1OGU2MjEyMjVlMTMiLCJpYXQiOjE3ODI0MTA5NTUuNjk4NzEsIm5iZiI6MTc4MjQxMDk1NS42OTg3MTQsImV4cCI6MTc4NTAwMjk1NS42ODk2NDYsInN1YiI6IjQxNjE3NTAiLCJzY29wZXMiOltdLCJ0ZWFtX2lkIjo0MDczMTY5LCJ0ZWFtX3BsYW4iOiJzdGFydGVyIiwidGVhbV9wbGFuX2V4cGlyYXRpb24iOjE3ODMzMzU4MzF9.f08dmJHSgyT70XZjevql2Ev2mO6cI-ZjscBFhANgitNWWr2GJY9V9VQP4uZRjZTd-2JyO39i3NpvggFxyaYFHJaz3S1f1Z7zwxT-pf4nCRDb4yThhJPBE1DjajOuN2AuhUUGehiKRFXRiUkqPT3LL-xiT9x-Z7YshYYrEpEvAeJvVQDOoGJxVOo-Ft6aW_ZFgF-nz9nRtnovlRU5SRpamp4ysvgL3aPG-d-QJDbzBLBk0853mwc5F5u3yXD4iiwjOrUQuzabigssVHkBdFq6Gn0TJEToNNXiDzD1UBr-XqVsAZUan9j75aQ2BViyVruaGqQMR8WVtcM5yOnCzXd27gnvdzyrNZIytsyags5bYEfT-clDflYipMtxgzyPEpdSwr-rW0zd8H5MukUtkMJNSNKfSi35E1hY0a1metAO3v4wGFN0TtRL8s5qwCGnJpOAdZE0CjRK7JDfcBrl98lEPC22h4eVnGkS-GzZuMuG6E1iJCqWRqlVVXOm1DGOML4dG-t5YS_ovNsDExbkJC3UGwuUa24G8o_fTgoOt8gjL9Ajtkg9YD-5AYKXqsNDJZfOrztYUj_btHxF4hsbwDvcMOa0vuKPo6MX7RdZhHBe5Mdq8PdpVDQm347J9IWt-AkzctdP81f_FKoqwBw2PBt-J2z8spFD8rdN12dgrt1TnZY",
+  "parser_token": "wesz06uwcfnrsh9h",
+  "filters": {
+    "platform": "vinted",
+    "country": "IT",
+    "category": "",
+    "price_from": "",
+    "price_to": "",
+    "reviews": "5",
+    "ads": "5",
+    "sells": "5",
+    "buys": "5",
+    "views": "",
+    "publication": "30m",
+    "registration": "",
+    "blacklist": "",
+    "delivery": "(все)",
+    "phone": "все",
+    "limit": "100",
+    "interval": "3"
+  }
+}
