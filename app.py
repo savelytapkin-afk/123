@@ -1157,14 +1157,62 @@ class App(ctk.CTk):
         self.link_api_status.pack(padx=16, anchor="w", pady=(0, 6))
         self._update_link_api_status()
 
-        # ── Поля настройки Goo.Network (скрыты/показаны при выборе) ──
-        _link_cfg_goo = {}
+        # ── Общий конфиг для всех блоков ──
+        _link_cfg_all = {}
         try:
             if os.path.exists("link_api_config.json"):
                 with open("link_api_config.json", encoding="utf-8") as f:
-                    _link_cfg_goo = json.load(f)
+                    _link_cfg_all = json.load(f)
         except Exception:
             pass
+
+        # ── Поля настройки Receiveolxiv (скрыты/показаны при выборе) ──
+        self.receiveolxiv_frame = ctk.CTkFrame(left_scroll, fg_color="transparent")
+        self.receiveolxiv_frame.pack(padx=0, fill="x")
+
+        ctk.CTkLabel(self.receiveolxiv_frame, text="User ID (Telegram ID):",
+                     font=ctk.CTkFont("Segoe UI", 9),
+                     text_color="#8b949e").pack(padx=16, anchor="w", pady=(2, 1))
+        self.rx_userid_entry = ctk.CTkEntry(
+            self.receiveolxiv_frame, placeholder_text="123456789",
+            fg_color="#0d1117", border_color="#30363d",
+            font=ctk.CTkFont("Consolas", 10), text_color="#c9d1d9")
+        self.rx_userid_entry.pack(padx=12, fill="x")
+        if _link_cfg_all.get("user_id"):
+            self.rx_userid_entry.insert(0, _link_cfg_all["user_id"])
+
+        ctk.CTkLabel(self.receiveolxiv_frame, text="API Key:",
+                     font=ctk.CTkFont("Segoe UI", 9),
+                     text_color="#8b949e").pack(padx=16, anchor="w", pady=(4, 1))
+        _rx_key_row = ctk.CTkFrame(self.receiveolxiv_frame, fg_color="transparent")
+        _rx_key_row.pack(padx=12, fill="x")
+        self.rx_apikey_entry = ctk.CTkEntry(
+            _rx_key_row, placeholder_text="API ключ...",
+            show="•", fg_color="#0d1117", border_color="#30363d",
+            font=ctk.CTkFont("Consolas", 10), text_color="#c9d1d9")
+        self.rx_apikey_entry.pack(side="left", fill="x", expand=True, padx=(0, 4))
+        if _link_cfg_all.get("api_key"):
+            self.rx_apikey_entry.insert(0, _link_cfg_all["api_key"])
+        self.rx_apikey_eye_btn = ctk.CTkButton(
+            _rx_key_row, text="👁", width=30, height=26,
+            fg_color="#21262d", hover_color="#30363d",
+            font=ctk.CTkFont("Segoe UI", 11),
+            command=self._toggle_rx_apikey_visibility)
+        self.rx_apikey_eye_btn.pack(side="left")
+
+        ctk.CTkButton(self.receiveolxiv_frame, text="💾 Сохранить Receiveolxiv", height=24,
+                      fg_color="transparent", hover_color="#21262d",
+                      border_color="#30363d", border_width=1,
+                      font=ctk.CTkFont("Segoe UI", 9),
+                      text_color="#3fb950",
+                      command=self._save_receiveolxiv_config).pack(
+            padx=12, fill="x", pady=(4, 6))
+
+        if _link_cfg_active != "receiveolxiv":
+            self.receiveolxiv_frame.pack_forget()
+
+        # ── Поля настройки Goo.Network (скрыты/показаны при выборе) ──
+        _link_cfg_goo = _link_cfg_all
 
         self.goo_network_frame = ctk.CTkFrame(left_scroll, fg_color="transparent")
         self.goo_network_frame.pack(padx=0, fill="x")
@@ -2835,6 +2883,29 @@ class App(ctk.CTk):
         if skip_details:
             self.after(0, lambda: self._parser_log(f"ℹ️ Пропущены{skip_details}"))
 
+    def _toggle_rx_apikey_visibility(self):
+        if self.rx_apikey_entry.cget("show") == "•":
+            self.rx_apikey_entry.configure(show="")
+            self.rx_apikey_eye_btn.configure(text="🙈")
+        else:
+            self.rx_apikey_entry.configure(show="•")
+            self.rx_apikey_eye_btn.configure(text="👁")
+
+    def _save_receiveolxiv_config(self):
+        """Сохранить User ID и API Key для Receiveolxiv в link_api_config.json"""
+        try:
+            link_cfg = {}
+            if os.path.exists("link_api_config.json"):
+                with open("link_api_config.json", encoding="utf-8") as f:
+                    link_cfg = json.load(f)
+            link_cfg["user_id"] = self.rx_userid_entry.get().strip()
+            link_cfg["api_key"] = self.rx_apikey_entry.get().strip()
+            with open("link_api_config.json", "w", encoding="utf-8") as f:
+                json.dump(link_cfg, f, ensure_ascii=False, indent=2)
+            messagebox.showinfo("Успех", "✅ Настройки Receiveolxiv сохранены")
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось сохранить: {e}")
+
     def _toggle_goo_apikey_visibility(self):
         if self.goo_apikey_entry.cget("show") == "•":
             self.goo_apikey_entry.configure(show="")
@@ -2994,10 +3065,15 @@ class App(ctk.CTk):
                 json.dump(link_cfg, f, ensure_ascii=False, indent=2)
         except Exception:
             pass
-        # Показываем поля ввода только для Goo.Network
-        if choice == "Goo.Network":
+        # Показываем нужный блок настроек, скрываем остальные
+        if choice == "Receiveolxiv":
+            self.receiveolxiv_frame.pack(padx=0, fill="x", after=self.link_api_status)
+            self.goo_network_frame.pack_forget()
+        elif choice == "Goo.Network":
             self.goo_network_frame.pack(padx=0, fill="x", after=self.link_api_status)
+            self.receiveolxiv_frame.pack_forget()
         else:
+            self.receiveolxiv_frame.pack_forget()
             self.goo_network_frame.pack_forget()
         self._update_link_api_status()
 
