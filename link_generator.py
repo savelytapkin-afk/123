@@ -427,37 +427,27 @@ class GooNetworkLinkGenerator:
         if not service:
             raise RuntimeError("Goo.Network: не определён сервис-код товара.")
 
-        ad_url  = product_data.get("ad_url", "").strip()
+        # Всегда используем no-parse режим — генерация по данным товара,
+        # аналогично первому API (receiveolxiv). Это исключает конфликт
+        # между доменом оригинальной ссылки и сервис-кодом.
+        price_raw = product_data.get("price", "0")
+        try:
+            price_num = float("".join(
+                c for c in str(price_raw) if c.isdigit() or c == "."
+            ) or "0")
+        except (ValueError, TypeError):
+            price_num = 0
+
+        endpoint = GOO_NETWORK_NO_PARSE_URL
+        payload = {
+            "service":              service,
+            "name":                 product_data.get("product_name", "") or "Item",
+            "isNeedBalanceChecker": False,
+            "profileID":            self.profile_id,
+            "image":                product_data.get("photo", ""),
+            "price":                price_num,
+        }
         headers = self._build_headers()
-
-        if ad_url:
-            # Режим с парсером — передаём ссылку на объявление
-            endpoint = GOO_NETWORK_PARSE_URL
-            payload = {
-                "service":              service,
-                "url":                  ad_url,
-                "isNeedBalanceChecker": False,
-                "profileID":            self.profile_id,
-            }
-        else:
-            # Режим без парсера — передаём данные товара напрямую
-            price_raw = product_data.get("price", "0")
-            try:
-                price_num = float("".join(
-                    c for c in str(price_raw) if c.isdigit() or c == "."
-                ) or "0")
-            except (ValueError, TypeError):
-                price_num = 0
-
-            endpoint = GOO_NETWORK_NO_PARSE_URL
-            payload = {
-                "service":              service,
-                "name":                 product_data.get("product_name", "") or "Item",
-                "isNeedBalanceChecker": False,
-                "profileID":            self.profile_id,
-                "image":                product_data.get("photo", ""),
-                "price":                price_num,
-            }
 
         response = requests.post(endpoint, json=payload, headers=headers, timeout=20)
 
