@@ -79,7 +79,21 @@ PLATFORMS = {
     "wallapop": "Wallapop",
 }
 
-COUNTRIES = ["DE", "US", "GB", "FR", "IT", "ES", "NL", "BE", "AT", "CH", "SE", "NO", "DK", "FI", "PL", "CZ", "AU", "CA", "SG", "MY"]
+COUNTRIES = [
+    "DE", "AT", "CH",           # DACH
+    "NL", "BE",                  # Бенилюкс
+    "FR",                        # Франция
+    "IT",                        # Италия
+    "ES", "PT",                  # Иберия
+    "PL", "CZ", "SK", "HU",     # Центральная Европа
+    "RO", "BG",                  # Восточная Европа
+    "SE", "NO", "DK", "FI",     # Скандинавия
+    "GB", "IE",                  # Британские острова
+    "HR", "SI", "GR", "CY",     # Южная Европа
+    "LT", "LV", "EE",           # Прибалтика
+    "US", "CA", "AU",           # Англоязычные
+    "SG", "MY",                  # Азия
+]
 
 
 def _derive_service_from_url(url: str) -> str:
